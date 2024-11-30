@@ -27,7 +27,7 @@ npm install mcp-ssh
   "mcpServers": {
     "ssh": {
       "command": "node",
-      "args": ["%APPDATA%//npm//node_modules//mcp-ssh//dist//server.js"],
+      "args": ["%APPDATA%/npm/node_modules/mcp-ssh/dist/server.js"],
       "env": {
         "SSH_PORT": "8889",
         "SSH_LOG_LEVEL": "info"
@@ -35,6 +35,7 @@ npm install mcp-ssh
     }
   }
 }
+
 ```
 
 ## Usage
