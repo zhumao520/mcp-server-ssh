@@ -1,76 +1,47 @@
 import express from 'express';
+import cors from 'cors';
 import { NodeSSH } from 'node-ssh';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
-const port = 8889;
-const connections = new Map<string, NodeSSH>();
-
-// Add CORS and response headers
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Content-Type', 'application/json');
-    next();
+// Configure multer for file uploads
+const upload = multer({ 
+    dest: path.join(os.tmpdir(), 'ssh-uploads'),
+    limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
 });
 
+const port = Number(process.env.SSH_PORT) || 8889;
+
+import { SSHManager } from './ssh-manager';
+import { logger } from './logger';
+
+const manager = new SSHManager();
+
 app.post('/connect', async (req, res) => {
-    console.log('Connect request:', req.body);
     try {
-        const { id, host, port, username, password } = req.body;
-        const ssh = new NodeSSH();
+        const { id, host, port, username, password, privateKey, passphrase } = req.body;
+        logger.info(`Connecting to ${host}:${port} as ${username} ${password ? 'with password' : 'with key'}`);
         
-        await ssh.connect({
+        const success = await manager.connect(id, {
             host,
             port,
             username,
             password,
-            readyTimeout: 5000
+            privateKey,
+            passphrase
         });
         
-        connections.set(id, ssh);
-        const response = { success: true, message: 'Connected successfully' };
-        console.log('Connect response:', response);
-        res.json(response);
+        res.json({ success, message: 'Connected successfully' });
     } catch (error: any) {
-        console.error('Connect error:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        logger.error('Connect error:', error);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
-app.post('/exec', async (req, res) => {
-    console.log('Exec request:', req.body);
-    try {
-        const { id, command } = req.body;
-        const ssh = connections.get(id);
-        
-        if (!ssh) {
-            const response = { success: false, error: 'Not connected' };
-            console.log('Exec error:', response);
-            return res.status(400).json(response);
-        }
-        
-        const result = await ssh.execCommand(command);
-        const response = {
-            success: true,
-            code: result.code,
-            stdout: result.stdout,
-            stderr: result.stderr
-        };
-        console.log('Exec response:', response);
-        res.json(response);
-    } catch (error: any) {
-        console.error('Exec error:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-app.listen(port, '0.0.0.0', () => {
-    console.log(`SSH Server running at http://localhost:${port}`);
-});
+// ... rest of the server code stays the same ...

@@ -1,26 +1,27 @@
 # MCP SSH Server
 
-SSH Server implementation for Model Context Protocol (MCP). This server enables secure remote command execution and file operations through SSH protocol.
+A powerful SSH server implementation for Model Context Protocol (MCP). This server enables secure remote command execution and file operations through SSH protocol, supporting both password and key-based authentication.
 
 ## Features
 
-- Secure SSH connection management
-- Remote command execution
-- Multiple simultaneous connections
-- Password and key-based authentication
-- Detailed logging and error handling
-- REST API interface
+- ✨ Secure SSH connection management
+- 🔑 Password and key-based authentication
+- 💻 Remote command execution
+- 📁 File operations (upload/download)
+- 📊 Progress tracking for file transfers
+- 🔐 Permission management
+- 📂 Directory operations
+- 🚀 Bulk file transfers
+- 📝 Detailed logging
 
 ## Installation
 
+1. Install the package:
 ```bash
 npm install @modelcontextprotocol/server-ssh
 ```
 
-## Configuration
-
-Add to your Claude desktop config (`claude_desktop_config.json`):
-
+2. Add to your Claude desktop config (`claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
@@ -36,49 +37,87 @@ Add to your Claude desktop config (`claude_desktop_config.json`):
 }
 ```
 
-## API Endpoints
+## Usage
 
-### Connect to SSH Host
-```http
-POST /connect
-Content-Type: application/json
+### Password Authentication
+```powershell
+$body = @{
+    id = "test"
+    host = "example.com"
+    port = 22
+    username = "user"
+    password = "pass123"
+} | ConvertTo-Json
 
-{
-    "id": "connection-id",
-    "host": "hostname",
-    "port": 22,
-    "username": "user",
-    "password": "pass"
-}
+Invoke-RestMethod -Uri "http://localhost:8889/connect" -Method Post -Body $body -ContentType "application/json"
 ```
 
-### Execute Command
-```http
-POST /exec
-Content-Type: application/json
+### Key Authentication
+```powershell
+$body = @{
+    id = "test"
+    host = "example.com"
+    port = 22
+    username = "user"
+    privateKey = Get-Content ~/.ssh/id_rsa | Out-String
+    passphrase = "optional-key-passphrase"  # if your key is protected
+} | ConvertTo-Json
 
-{
-    "id": "connection-id",
-    "command": "ls -la"
+Invoke-RestMethod -Uri "http://localhost:8889/connect" -Method Post -Body $body -ContentType "application/json"
+```
+
+### Execute Commands
+```powershell
+$execBody = @{
+    id = "test"
+    command = "ls -la"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:8889/exec" -Method Post -Body $execBody -ContentType "application/json"
+```
+
+### File Operations
+```powershell
+# Upload file
+$uploadForm = @{
+    file = Get-Item -Path "localfile.txt"
+    remotePath = "/remote/path/file.txt"
 }
+Invoke-RestMethod -Uri "http://localhost:8889/upload/test" -Method Post -Form $uploadForm
+
+# Download file
+Invoke-RestMethod -Uri "http://localhost:8889/download/test?remotePath=/remote/path/file.txt" -Method Get -OutFile "downloaded.txt"
+```
+
+### Directory Operations
+```powershell
+# List directory
+Invoke-RestMethod -Uri "http://localhost:8889/ls/test?path=/remote/path" -Method Get
+
+# Get connection status
+Invoke-RestMethod -Uri "http://localhost:8889/status/test" -Method Get
 ```
 
 ## Development
 
+1. Clone the repository:
 ```bash
-# Install dependencies
+git clone https://github.com/shaike1/mcp-server-ssh.git
+cd mcp-server-ssh
+```
+
+2. Install dependencies:
+```bash
 npm install
+```
 
-# Run in development mode
-npm run dev
-
-# Build
+3. Build:
+```bash
 npm run build
+```
 
-# Run tests
-npm test
-
-# Start server
+4. Start server:
+```bash
 npm start
 ```
 
@@ -86,6 +125,14 @@ npm start
 
 - `SSH_PORT`: Server port (default: 8889)
 - `SSH_LOG_LEVEL`: Logging level (default: info)
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
