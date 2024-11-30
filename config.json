@@ -1,0 +1,20 @@
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080
+  },
+  "connections": {
+    "default": {
+      "host": "example.com",
+      "username": "admin",
+      "password": "",
+      "port": 22,
+      "keepaliveInterval": 60000,
+      "readyTimeout": 30000
+    }
+  },
+  "logging": {
+    "level": "info",
+    "file": "ssh-server.log"
+  }
+}
