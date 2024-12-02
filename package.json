@@ -1,15 +1,19 @@
 {
-  "name": "@modelcontextprotocol/server-ssh",
+  "name": "@shaike1/server-ssh",
   "version": "1.0.0",
   "description": "SSH Server for Model Context Protocol",
   "main": "dist/server.js",
+  "bin": {
+    "mcp-ssh-install": "./install.js"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "ts-node src/server.ts",
     "lint": "eslint src/**/*.ts",
     "test": "jest",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "install-server": "node install.js"
   },
   "keywords": [
     "mcp",

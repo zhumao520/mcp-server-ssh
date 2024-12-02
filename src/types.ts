@@ -3,6 +3,7 @@ export interface SSHConfig {
   username: string;
   password?: string;
   privateKey?: string;
+  passphrase?: string;  // Added passphrase for encrypted keys
   port?: number;
   keepaliveInterval?: number;
   readyTimeout?: number;
