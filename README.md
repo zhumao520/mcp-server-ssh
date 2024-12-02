@@ -18,7 +18,7 @@ A powerful SSH server implementation for Model Context Protocol (MCP). This serv
 
 1. Install the package:
 ```bash
-npm install @modelcontextprotocol/server-ssh
+npm install mcp-ssh
 ```
 
 2. Add to your Claude desktop config (`claude_desktop_config.json`):
@@ -27,7 +27,7 @@ npm install @modelcontextprotocol/server-ssh
   "mcpServers": {
     "ssh": {
       "command": "node",
-      "args": ["path/to/@modelcontextprotocol/server-ssh/dist/server.js"],
+      "args": ["%APPDATA%/npm/node_modules/mcp-ssh/dist/server.js"],
       "env": {
         "SSH_PORT": "8889",
         "SSH_LOG_LEVEL": "info"
@@ -35,6 +35,7 @@ npm install @modelcontextprotocol/server-ssh
     }
   }
 }
+
 ```
 
 ## Usage
