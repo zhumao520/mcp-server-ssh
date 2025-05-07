@@ -97,7 +97,7 @@ jobs:
           type=raw,value=latest,enable={{is_default_branch}}
           # (可选) 添加手动输入的后缀到标签
           type=raw,value=${{ github.sha }}${{ github.event.inputs.image_tag_suffix }},enable=${{ github.event.inputs.image_tag_suffix != '' }}
-          type=raw,value=latest${{ github.event.inputs.image_tag_suffix }},enable=${{is_default_branch && github.event.inputs.image_tag_suffix != '' }}
+          type=raw,value=latest${{ github.event.inputs.image_tag_suffix }},enable=${{ github.ref_name == github.event.repository.default_branch && github.event.inputs.image_tag_suffix != '' }}
 
 
     - name: 构建并推送 Docker 镜像 # 步骤6：构建并推送 Docker 镜像
