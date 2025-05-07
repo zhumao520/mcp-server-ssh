@@ -1,96 +1,114 @@
 # 工作流程名称
-name: CI and Docker Push
+name: CI 与 Docker 推送 (手动触发, 多平台)
 
 # 工作流程触发条件
 on:
-  push:
-    branches: [ main ] # 当代码推送到 main 分支时触发
-  pull_request:
-    branches: [ main ] # 当有 Pull Request 到 main 分支时触发
+  workflow_dispatch: # 允许手动触发此工作流程
+    inputs: # （可选）如果需要手动触发时输入参数，可以在这里定义
+      logLevel:
+        description: '日志级别'
+        required: false
+        default: 'info'
+        type: choice
+        options:
+        - info
+        - warning
+        - debug
+      image_tag_suffix:
+        description: '自定义镜像标签后缀 (例如: -beta, -v1.2)'
+        required: false
+        type: string
 
 jobs:
   # 第一个作业：构建和测试 Node.js 应用
-  build_and_test: # 将原 'build' 作业重命名，以更清晰地描述其功能
+  build_and_test:
+    name: 构建与测试 Node.js 应用 # 作业显示名称
     runs-on: ubuntu-latest # 在最新的 Ubuntu 环境中运行
 
     strategy:
       matrix:
-        node-version: [16.x, 18.x, 20.x] # 定义 Node.js 版本矩阵
+        node-version: [18.x, 20.x, 22.x] # 定义 Node.js 版本矩阵 (建议使用较新的 LTS 版本)
 
     steps:
-    - name: Checkout repository # 步骤1：检出仓库代码
-      uses: actions/checkout@v4 # 使用官方的 checkout action
+    - name: 检出仓库代码 # 步骤1：检出仓库代码
+      uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }} # 步骤2：设置 Node.js 环境
-      uses: actions/setup-node@v4 # 使用官方的 setup-node action
+    - name: 设置 Node.js ${{ matrix.node-version }} # 步骤2：设置 Node.js 环境
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }} # 指定 Node.js 版本
         cache: 'npm' # 启用 npm 依赖缓存，加快构建速度
 
-    - name: Install dependencies # 步骤3：安装项目依赖
+    - name: 安装依赖 # 步骤3：安装项目依赖
       run: npm ci # 使用 npm ci 精确安装依赖，基于 package-lock.json
 
-    - name: Build project # 步骤4：执行构建脚本
+    - name: 构建项目 # 步骤4：执行构建脚本
       run: npm run build # 运行 package.json 中定义的 build 脚本
 
-    - name: Lint code # 步骤5：执行代码风格检查
+    - name: 代码检查 # 步骤5：执行代码风格检查
       run: npm run lint # 运行 package.json 中定义的 lint 脚本
 
-    - name: Run tests # 步骤6：执行测试
+    - name: 运行测试 # 步骤6：执行测试
       run: npm test # 运行 package.json 中定义的 test 脚本
+      # （可选）打印手动输入的参数
+    - name: 显示手动输入的参数 (如果提供了)
+      if: github.event.inputs.logLevel || github.event.inputs.image_tag_suffix
+      run: |
+        echo "日志级别: ${{ github.event.inputs.logLevel }}"
+        echo "镜像标签后缀: ${{ github.event.inputs.image_tag_suffix }}"
 
   # 第二个作业：构建 Docker 镜像并推送到 Docker Hub
   push_to_docker_hub:
-    name: Build and Push Docker Image
+    name: 构建并推送多平台 Docker 镜像 # 作业显示名称
     runs-on: ubuntu-latest
-    # 'needs: build_and_test' 表示此作业依赖于 'build_and_test' 作业的成功完成
-    needs: build_and_test
-    # 'if' 条件确保此作业仅在代码推送到 main 分支时运行，而不是在 Pull Request 时
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build_and_test # 此作业依赖于 'build_and_test' 作业的成功完成
 
     steps:
-    - name: Checkout repository # 步骤1：检出仓库代码
+    - name: 检出仓库代码 # 步骤1：检出仓库代码
       uses: actions/checkout@v4
 
-    - name: Set up QEMU # 步骤2：设置 QEMU (用于构建多平台镜像，可选但推荐)
+    - name: 设置 QEMU # 步骤2：设置 QEMU (用于构建多平台镜像)
       uses: docker/setup-qemu-action@v3
 
-    - name: Set up Docker Buildx # 步骤3：设置 Docker Buildx (一个 Docker CLI 插件，提供高级构建功能)
-      id: buildx # 给此步骤一个 ID，方便后续引用
+    - name: 设置 Docker Buildx # 步骤3：设置 Docker Buildx (一个 Docker CLI 插件，提供高级构建功能)
+      id: buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Login to Docker Hub # 步骤4：登录到 Docker Hub
+    - name: 登录到 Docker Hub # 步骤4：登录到 Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }} # 从 GitHub Secrets 中获取 Docker Hub 用户名
         password: ${{ secrets.DOCKERHUB_TOKEN }} # 从 GitHub Secrets 中获取 Docker Hub 访问令牌
 
-    - name: Extract metadata (tags, labels) for Docker # 步骤5：为 Docker 镜像提取元数据 (标签、标记)
+    - name: 为 Docker 提取元数据 (标签、标记) # 步骤5：为 Docker 镜像提取元数据 (标签、标记)
       id: meta
       uses: docker/metadata-action@v5
       with:
         images: ${{ secrets.DOCKERHUB_USERNAME }}/your-mcp-server-ssh-repo # <--- 请将 'your-mcp-server-ssh-repo' 替换为你 Docker Hub 上的仓库名
         # 例如: images: mydockerhubusername/mcp-server-ssh
-        # 可以定义多种标签规则，例如：
         tags: |
-          type=schedule
+          # 基于 Git commit SHA 的标签
+          type=sha,prefix=sha-
+          # 基于 Git 分支的标签 (例如: main, develop)
           type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=sha # 使用 Git commit SHA 作为标签
-          type=raw,value=latest,enable={{is_default_branch}} # 如果是默认分支 (main)，则打上 latest 标签
+          # 基于 Git 标签的标签 (例如: v1.0.0, v1.1.0-beta)
+          type=ref,event=tag
+          # 如果是默认分支 (通常是 main)，则打上 latest 标签
+          type=raw,value=latest,enable={{is_default_branch}}
+          # (可选) 添加手动输入的后缀到标签
+          type=raw,value=${{ github.sha }}${{ github.event.inputs.image_tag_suffix }},enable=${{ github.event.inputs.image_tag_suffix != '' }}
+          type=raw,value=latest${{ github.event.inputs.image_tag_suffix }},enable=${{is_default_branch && github.event.inputs.image_tag_suffix != '' }}
 
-    - name: Build and push Docker image # 步骤6：构建并推送 Docker 镜像
+
+    - name: 构建并推送 Docker 镜像 # 步骤6：构建并推送 Docker 镜像
       uses: docker/build-push-action@v5
       with:
         context: . # Dockerfile 的上下文路径，通常是仓库根目录
         file: ./Dockerfile # Dockerfile 的路径，如果不在根目录需要指定
         push: true # 设置为 true 以推送到 Docker Hub
+        platforms: linux/amd64,linux/arm64 # <--- 指定构建的平台
         tags: ${{ steps.meta.outputs.tags }} # 使用上一步 'meta' 生成的标签
         labels: ${{ steps.meta.outputs.labels }} # 使用上一步 'meta' 生成的标记
         builder: ${{ steps.buildx.outputs.name }} # 使用 'setup-buildx-action' 设置的 builder
-        # (可选) 如果需要构建多平台镜像 (例如 amd64 和 arm64):
-        # platforms: linux/amd64,linux/arm64
         cache-from: type=gha # (可选) 从 GitHub Actions 缓存加载构建缓存
         cache-to: type=gha,mode=max # (可选) 将构建缓存保存到 GitHub Actions 缓存 (mode=max 表示尽可能多地缓存)
